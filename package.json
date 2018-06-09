@@ -1,0 +1,31 @@
+{
+  "name": "jshop",
+  "version": "1.0.0",
+  "description": "a simple SHOP-like planner",
+  "keywords": [
+    "planning",
+    "planner",
+    "shop",
+    "HTN"
+  ],
+  "main": "./lib/index.js",
+  "dependencies": {
+    "lodash": "^4.17.10"
+  },
+  "devDependencies": {
+    "standard": "^11.0.1",
+    "tap": "^12.0.1",
+    "tape": "^4.9.0"
+  },
+  "scripts": {
+    "test": "standard && ./node_modules/.bin/tap test/*.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ryanramage/jshop.git"
+  },
+  "bugs": {
+    "url": "http://github.com/ryanramage/jshop/issues"
+  },
+  "homepage": "http://github.com/ryanramage/jshop"
+}
