@@ -4,7 +4,7 @@ const test = require('tape')
 const taxiRate = (dist) => (1.5 + 0.5 * dist)
 const walk = (state, who, from, to) => {
   if (state.loc[who] === from) {
-    state.loc[who] = from
+    state.loc[who] = to
     return state
   } else return null
 }
@@ -73,6 +73,22 @@ test('move state forward and re-plan', function (t) {
   t.end()
 })
 
+test('there and back, and getting home is shorter for some reason', function (t) {
+  let state1 = {}
+  state1.loc = {me: 'home'}
+  state1.cash = {me: 20}
+  state1.owe = {me: 0}
+  state1.dist = {home: {park: 8.0}, park: {home: 1.3}}
+  let travel = setup()
+  let solution = travel.solve(state1, [['travel', 'me', 'home', 'park'], ['travel', 'me', 'park', 'home']])
+  t.deepEquals(solution[0], ['callTaxi', 'me', 'home'])
+  t.deepEquals(solution[1], ['rideTaxi', 'me', 'home', 'park'])
+  t.deepEquals(solution[2], ['payDriver', 'me'])
+  t.deepEquals(solution[3], ['walk', 'me', 'park', 'home'])
+  t.ok(solution)
+  t.end()
+})
+
 function setup () {
   let travel = jshop.create()
   travel.operators({walk, callTaxi, rideTaxi, payDriver})
@@ -83,6 +99,7 @@ function setup () {
   }
 
   const travelByTaxi = (state, who, from, to) => {
+    if (state.dist[from][to] <= 2) return null // we can walk this
     if (state.cash[who] < taxiRate(state.dist[from][to])) return null
     if (state.loc.taxi === state.loc[who]) return [['rideTaxi', who, from, to], ['payDriver', who]]
     return [['callTaxi', who, from], ['rideTaxi', who, from, to], ['payDriver', who]]
