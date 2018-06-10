@@ -2,28 +2,28 @@ const jshop = require('../lib/index')
 const test = require('tape')
 
 const taxiRate = (dist) => (1.5 + 0.5 * dist)
-const walk = (state, a, x, y) => {
-  if (state.loc[a] === x) {
-    state.loc[a] = y
+const walk = (state, who, from, to) => {
+  if (state.loc[who] === from) {
+    state.loc[who] = from
     return state
   } else return null
 }
-const callTaxi = (state, a, x) => {
-  state.loc['taxi'] = x
+const callTaxi = (state, who, from) => {
+  state.loc['taxi'] = from
   return state
 }
-const rideTaxi = (state, a, x, y) => {
-  if (state.loc['taxi'] === x && state.loc[a] === x) {
-    state.loc['taxi'] = y
-    state.loc[a] = y
-    state.owe[a] = taxiRate(state.dist[x][y])
+const rideTaxi = (state, who, from, to) => {
+  if (state.loc['taxi'] === from && state.loc[who] === from) {
+    state.loc['taxi'] = to
+    state.loc[who] = to
+    state.owe[who] = taxiRate(state.dist[from][to])
     return state
   } else return null
 }
-const payDriver = (state, a) => {
-  if (state.cash[a] >= state.owe[a]) {
-    state.cash[a] = state.cash[a] - state.owe[a]
-    state.owe[a] = 0
+const payDriver = (state, who) => {
+  if (state.cash[who] >= state.owe[who]) {
+    state.cash[who] = state.cash[who] - state.owe[who]
+    state.owe[who] = 0
     return state
   } else return null
 }
@@ -77,15 +77,15 @@ function setup () {
   let travel = jshop.create()
   travel.operators({walk, callTaxi, rideTaxi, payDriver})
 
-  const travelByFoot = (state, a, x, y) => {
-    if (state.dist[x][y] <= 2) return [['walk', a, x, y]]
+  const travelByFoot = (state, who, from, to) => {
+    if (state.dist[from][to] <= 2) return [['walk', who, from, to]]
     return null
   }
 
-  const travelByTaxi = (state, a, x, y) => {
-    if (state.cash[a] < taxiRate(state.dist[x][y])) return null
-    if (state.loc.taxi === state.loc.me) return [['rideTaxi', a, x, y], ['payDriver', a]]
-    return [['callTaxi', a, x], ['rideTaxi', a, x, y], ['payDriver', a]]
+  const travelByTaxi = (state, who, from, to) => {
+    if (state.cash[who] < taxiRate(state.dist[from][to])) return null
+    if (state.loc.taxi === state.loc[who]) return [['rideTaxi', who, from, to], ['payDriver', who]]
+    return [['callTaxi', who, from], ['rideTaxi', who, from, to], ['payDriver', who]]
   }
 
   travel.setMethods('travel', [travelByFoot, travelByTaxi])
