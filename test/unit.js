@@ -85,6 +85,11 @@ test('there and back, and getting home is shorter for some reason', function (t)
   t.deepEquals(solution[1], ['rideTaxi', 'me', 'home', 'park'])
   t.deepEquals(solution[2], ['payDriver', 'me'])
   t.deepEquals(solution[3], ['walk', 'me', 'park', 'home'])
+
+  // test that the original state is not mutated
+  t.equals(state1.loc.me, 'home')
+  t.equals(state1.cash.me, 20)
+  t.equals(state1.owe.me, 0)
   t.ok(solution)
   t.end()
 })
