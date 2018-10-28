@@ -18,6 +18,12 @@ npm install jshop
 
 see the test/unit.js file for an example usage. more to follow.
 
+## Further reading
+
+ - Designing games mechanics with a HTN Planner - [PDF](http://www.gameaipro.com/GameAIPro/GameAIPro_Chapter12_Exploring_HTN_Planners_through_Example.pdf)
+
+ - Use in video games - [Youtube](https://youtu.be/kXm467TFTcY)
+
 ## License
 
 MIT
