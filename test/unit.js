@@ -1,7 +1,34 @@
 const jshop = require('../lib/index')
 const test = require('tape')
 
-test('fill in this', function (t) {
+const taxiRate = (dist) => (1.5 + 0.5 * dist)
+const walk = (state, who, from, to) => {
+  if (state.loc[who] === from) {
+    state.loc[who] = to
+    return state
+  } else return null
+}
+const callTaxi = (state, who, from) => {
+  state.loc['taxi'] = from
+  return state
+}
+const rideTaxi = (state, who, from, to) => {
+  if (state.loc['taxi'] === from && state.loc[who] === from) {
+    state.loc['taxi'] = to
+    state.loc[who] = to
+    state.owe[who] = taxiRate(state.dist[from][to])
+    return state
+  } else return null
+}
+const payDriver = (state, who) => {
+  if (state.cash[who] >= state.owe[who]) {
+    state.cash[who] = state.cash[who] - state.owe[who]
+    state.owe[who] = 0
+    return state
+  } else return null
+}
+
+test('travel example 1', function (t) {
   let state1 = {}
   state1.loc = {me: 'home'}
   state1.cash = {me: 20}
@@ -16,49 +43,71 @@ test('fill in this', function (t) {
   t.end()
 })
 
+test('travel example 2', function (t) {
+  let state1 = {}
+  state1.loc = {me: 'home'}
+  state1.cash = {me: 2}
+  state1.owe = {me: 0}
+  state1.dist = {home: {park: 1.3}, park: {home: 1.3}}
+  let travel = setup()
+  let solution = travel.solve(state1, [['travel', 'me', 'home', 'park']])
+  t.deepEquals(solution[0], ['walk', 'me', 'home', 'park'])
+  t.ok(solution)
+  t.end()
+})
+
+test('move state forward and re-plan', function (t) {
+  let state1 = {}
+  state1.loc = {me: 'home'}
+  state1.cash = {me: 20}
+  state1.owe = {me: 0}
+  state1.dist = {home: {park: 8}, park: {home: 8}}
+  let travel = setup()
+  let solution = travel.solve(state1, [['travel', 'me', 'home', 'park']])
+  t.deepEquals(solution[0], ['callTaxi', 'me', 'home'])
+  let state2 = callTaxi(state1, 'me', 'home')
+  let solution2 = travel.solve(state2, [['travel', 'me', 'home', 'park']])
+  t.deepEquals(solution2[0], ['rideTaxi', 'me', 'home', 'park'])
+  let state3 = rideTaxi(state2, 'me', 'home', 'park')
+  t.ok(state3)
+  t.end()
+})
+
+test('there and back, and getting home is shorter for some reason', function (t) {
+  let state1 = {}
+  state1.loc = {me: 'home'}
+  state1.cash = {me: 20}
+  state1.owe = {me: 0}
+  state1.dist = {home: {park: 8.0}, park: {home: 1.3}}
+  let travel = setup()
+  let solution = travel.solve(state1, [['travel', 'me', 'home', 'park'], ['travel', 'me', 'park', 'home']])
+  t.deepEquals(solution[0], ['callTaxi', 'me', 'home'])
+  t.deepEquals(solution[1], ['rideTaxi', 'me', 'home', 'park'])
+  t.deepEquals(solution[2], ['payDriver', 'me'])
+  t.deepEquals(solution[3], ['walk', 'me', 'park', 'home'])
+
+  // test that the original state is not mutated
+  t.equals(state1.loc.me, 'home')
+  t.equals(state1.cash.me, 20)
+  t.equals(state1.owe.me, 0)
+  t.ok(solution)
+  t.end()
+})
+
 function setup () {
   let travel = jshop.create()
-
-  const taxiRate = (dist) => (1.5 + 0.5 * dist)
-
-  const walk = (state, a, x, y) => {
-    if (state.loc[a] === x) {
-      state.loc[a] = y
-      return state
-    } else return null
-  }
-
-  const callTaxi = (state, a, x) => {
-    state.loc['taxi'] = x
-    return state
-  }
-  const rideTaxi = (state, a, x, y) => {
-    if (state.loc['taxi'] === x && state.loc[a] === x) {
-      state.loc['taxi'] = y
-      state.loc[a] = y
-      state.owe[a] = taxiRate(state.dist[x][y])
-      return state
-    } else return null
-  }
-  const payDriver = (state, a) => {
-    if (state.cash[a] >= state.owe[a]) {
-      state.cash[a] = state.cash[a] - state.owe[a]
-      state.owe[a] = 0
-      return state
-    } else return null
-  }
   travel.operators({walk, callTaxi, rideTaxi, payDriver})
 
-  const travelByFoot = (state, a, x, y) => {
-    if (state.dist[x][y] <= 2) return [['walk', a, x, y]]
+  const travelByFoot = (state, who, from, to) => {
+    if (state.dist[from][to] <= 2) return [['walk', who, from, to]]
     return null
   }
 
-  const travelByTaxi = (state, a, x, y) => {
-    if (state.cash[a] >= taxiRate(state.dist[x][y])) {
-      return [['callTaxi', a, x], ['rideTaxi', a, x, y], ['payDriver', a]]
-    }
-    return null
+  const travelByTaxi = (state, who, from, to) => {
+    if (state.dist[from][to] <= 2) return null // we can walk this
+    if (state.cash[who] < taxiRate(state.dist[from][to])) return null
+    if (state.loc.taxi === state.loc[who]) return [['rideTaxi', who, from, to], ['payDriver', who]]
+    return [['callTaxi', who, from], ['rideTaxi', who, from, to], ['payDriver', who]]
   }
 
   travel.setMethods('travel', [travelByFoot, travelByTaxi])
